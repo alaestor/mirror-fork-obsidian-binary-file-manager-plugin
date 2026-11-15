@@ -38,6 +38,7 @@ jobs:
       # 全部 devDependencies (一部は main.js に bundle される) なので全体を high 以上で止める
       - run: pnpm audit --audit-level=high
       - run: pnpm lint
+      - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm build
       # main.js に bundle された package が dependencies から辿れるか。devDependencies のままだと

@@ -8,6 +8,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "test": "node --test tests/*.test.cjs",
     "fix:format": "biome format --write src",
     "lint:format": "biome format --check src",
     "fix:lint": "biome lint --write src",
@@ -16,7 +17,7 @@
     "fix": "biome check --write src",
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
-    "check": "node scripts/check-toolchain.mjs && node scripts/check-actions-pinned.mjs && node scripts/check-config-schema.mjs && pnpm lint && pnpm typecheck && pnpm build && node scripts/check-bundled-deps.mjs"
+    "check": "node scripts/check-toolchain.mjs && node scripts/check-actions-pinned.mjs && node scripts/check-config-schema.mjs && pnpm test && pnpm lint && pnpm typecheck && pnpm build && node scripts/check-bundled-deps.mjs"
   },
   "keywords": [],
   "author": "qawatake",
