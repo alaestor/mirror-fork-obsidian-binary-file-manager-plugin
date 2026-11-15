@@ -12,13 +12,14 @@ export class FileListAdapter {
 	constructor(app: App, _plugin: BinaryFileManagerPlugin) {
 		this.app = app;
 		this.registeredBinaryFilePaths = new Set<string>();
-		this.app.workspace.onLayoutReady(async () => {
-			this.deleteNonExistingBinaryFiles();
-		});
 	}
 
 	async load(): Promise<FileListAdapter> {
 		await this.loadBinaryFiles();
+		// onLayoutReady may run immediately, so it must not precede registry loading.
+		this.app.workspace.onLayoutReady(async () => {
+			await this.deleteNonExistingBinaryFiles();
+		});
 		return this;
 	}
 
