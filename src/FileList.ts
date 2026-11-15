@@ -34,6 +34,24 @@ export class FileListAdapter {
 		this.registeredBinaryFilePaths.delete(filepath);
 	}
 
+	rename(oldPath: string, newPath: string): boolean {
+		if (oldPath === newPath) {
+			return false;
+		}
+
+		// A folder rename also changes every registered path below that folder.
+		const affectedPaths = Array.from(this.registeredBinaryFilePaths).filter(
+			(path) => path === oldPath || path.startsWith(`${oldPath}/`)
+		);
+		for (const path of affectedPaths) {
+			this.registeredBinaryFilePaths.delete(path);
+		}
+		for (const path of affectedPaths) {
+			this.registeredBinaryFilePaths.add(newPath + path.slice(oldPath.length));
+		}
+		return affectedPaths.length > 0;
+	}
+
 	has(filepath: string): boolean {
 		return this.registeredBinaryFilePaths.has(filepath);
 	}
