@@ -82,6 +82,17 @@ export default class BinaryFileManagerPlugin extends Plugin {
 			})
 		);
 
+		this.registerEvent(
+			this.app.vault.on(
+				'rename',
+				async (file: TAbstractFile, oldPath: string) => {
+					if (this.fileListAdapter.rename(oldPath, file.path)) {
+						await this.fileListAdapter.save();
+					}
+				}
+			)
+		);
+
 		// Commands
 		this.addCommand({
 			id: 'binary-file-manager-manual-detection',
