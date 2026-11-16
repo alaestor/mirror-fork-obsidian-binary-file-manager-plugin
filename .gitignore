@@ -27,3 +27,14 @@ data.json
 
 # esbuild metafile written by `pnpm build`, read by scripts/check-bundled-deps.mjs
 meta.json
+
+# alaestor fork
+result*
+.*
+__*
+!.gitignore
+
+## preserve upstream's
+!.editorconfig
+!.npmrc
+!.tagpr
