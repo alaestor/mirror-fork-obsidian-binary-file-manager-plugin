@@ -1,7 +1,7 @@
 {
 	"id": "personal-fork-binary-file-manager",
 	"name": "Binary File Manager (personal fork)",
-	"version": "0.3.3-personal.1",
+	"version": "0.3.3-personal.2",
 	"minAppVersion": "1.4.10",
 	"description": "Detects new binary files in the vault and create markdown files with metadata.",
 	"author": "alaestor weissman",
