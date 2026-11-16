@@ -2,18 +2,15 @@
 
 ![Hallucinated Slop](https://img.shields.io/badge/%E2%80%94_Hallucinated_Slop_%E2%80%94-red)
 
-Personal fork maintained by alaestor weissman. It creates Markdown stubs for binary
-files in an Obsidian vault. See [qawatake's upstream documentation](https://github.com/qawatake/obsidian-binary-file-manager-plugin#readme)
-for settings, template syntax and Templater support. The upstream MIT license is
-preserved in [LICENSE](LICENSE).
+Personal fork. See the upstream [github:qawatake/obsidian-binary-file-manager-plugin](https://github.com/qawatake/obsidian-binary-file-manager-plugin) for details.
 
-This fork fixes registry loss during startup and preserves registrations when
-files or folders are renamed inside an open vault. It does not track renames made
-while Obsidian is closed or repair existing duplicate stubs.
+Plugin ID `personal-fork-binary-file-manager`, distinct from the marketplace plugin. Intended only for manual installation; not distributed.
 
-Its plugin ID is `personal-fork-binary-file-manager`, distinct from the marketplace
-plugin. Install it locally; marketplace updates for upstream do not update this
-fork. Do not enable both versions in the same vault.
+## In this fork
+
+- Fix for open-existing startup stub duplication
+- Fix for move/rename stub duplication
+- Nix Flake for dev shell, build, and checks
 
 ## Build and test
 
@@ -25,8 +22,7 @@ nix build
 ```
 
 The check runs the regression tests, type checking and the production build.
-`result/` contains `main.js`, `manifest.json`, `styles.css` and `LICENSE`, not a vault
-or its private settings. Nix pins the toolchain and JavaScript dependencies.
+`result/` contains `main.js`, `manifest.json`, `styles.css` and `LICENSE`.
 
 For development:
 
@@ -37,36 +33,22 @@ pnpm test
 pnpm check
 ```
 
-The shell supplies Node.js, pnpm and a Nix-native Biome binary. The initial install
-and Nix dependency fetches need network access; the installed plugin does not
-need a release server or updater.
+The shell supplies Node.js, pnpm and a Nix-native Biome binary.
 
 ## Install or migrate
 
 Close Obsidian and back up the vault before changing its plugin files.
 
-1. Run `nix build` and create
-   `<vault>/.obsidian/plugins/personal-fork-binary-file-manager/`.
-2. Copy the four files from `result/` into that directory. Copy the files rather
-   than symlinking the directory: Obsidian must be able to write its settings and
-   registry alongside the build.
-3. When migrating from upstream, also copy `data.json` and the hidden
-   `.binary-file-manager_binary-file-list.txt` from its existing plugin directory.
-   Do not uninstall upstream before preserving these files. A missing registry
-   makes existing binaries appear new.
-4. In `.obsidian/community-plugins.json`, replace
-   `obsidian-binary-file-manager-plugin` with `personal-fork-binary-file-manager`.
-   Move the old plugin directory outside the vault as a recoverable backup.
-5. If `.obsidian/hotkeys.json` contains command keys prefixed with
-   `obsidian-binary-file-manager-plugin:`, replace that prefix with
-   `personal-fork-binary-file-manager:`.
-6. Reopen the vault. Confirm the personal fork is enabled and upstream is absent.
+```sh
+set -eu
+VAULT="/absolute/path/to/vault"
 
-Use the vault's actual configuration directory if it is not `.obsidian`.
-Old registries can contain stale paths from earlier renames. Those binaries can
-receive duplicate stubs on startup; check for and remove those duplicates after
-migration. The fixes prevent future registry loss and track subsequent in-app
-renames, but do not repair old state.
+nix build
+DEST="$VAULT/.obsidian/plugins/personal-fork-binary-file-manager"
+mkdir -p "$DEST"
+install -m 644 \
+    result/main.js result/manifest.json \
+    result/styles.css result/LICENSE "$DEST/"
+```
 
-For later updates, close Obsidian, copy the four build files into the same local
-plugin directory and reopen it. Keep the existing settings and registry files.
+For migration, copy `data.json` and `.binary-file-manager_binary-file-list.txt` from the old plugin directory into the new one before reopening. Disable upstream and enable `Binary File Manager (personal fork)`; don't enable both together.
