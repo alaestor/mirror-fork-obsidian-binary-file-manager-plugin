@@ -1,50 +1,72 @@
-## Binary File Manager Plugin
+# Binary File Manager personal fork
 
-This plugin detects new binary files in the vault and create markdown files with metadata.
+![Hallucinated Slop](https://img.shields.io/badge/%E2%80%94_Hallucinated_Slop_%E2%80%94-red)
 
-By using metadata files, you can take advantage of the rich functionality provied by Obsidian such as
-- full text search, 
-- tags and aliases, 
-- internal links, and so on.
+Personal fork maintained by alaestor weissman. It creates Markdown stubs for binary
+files in an Obsidian vault. See [qawatake's upstream documentation](https://github.com/qawatake/obsidian-binary-file-manager-plugin#readme)
+for settings, template syntax and Templater support. The upstream MIT license is
+preserved in [LICENSE](LICENSE).
 
-For example, if you add tags to the metadata of an image file, then you can indirectly access the image file by tag-searching (and following an internal link in the metadata).
+This fork fixes registry loss during startup and preserves registrations when
+files or folders are renamed inside an open vault. It does not track renames made
+while Obsidian is closed or repair existing duplicate stubs.
 
-[![Image from Gyazo](https://i.gyazo.com/6c46d863e4c31d0815bcf027fdb48f92.gif)](https://gyazo.com/6c46d863e4c31d0815bcf027fdb48f92)
+Its plugin ID is `personal-fork-binary-file-manager`, distinct from the marketplace
+plugin. Install it locally; marketplace updates for upstream do not update this
+fork. Do not enable both versions in the same vault.
 
-### Quick start
-1. Install and enable this plugin.
-2. Go to the setting tab of Binary File Manager and enable auto detection.
-3. Add a static file like `sample.pdf` to your vault.
+## Build and test
 
-Then you will find a meta data file `INFO_sample_PDF.md` in the root directory.
-You can customize the new file location and the templates for names and contents of metadata files.
+With Nix flakes enabled:
 
-### Format syntax
-You can use the following syntax to format the names and contents of metadata files.
-#### Date
-| Syntax | Description |
-| -- | -- |
-| `{{CDATE:<FORMAT>}}` | Creation time of the static file.  |
-| `{{NOW:<FORMAT>}}` | Current time. |
+```sh
+nix flake check
+nix build
+```
 
-- Replace `<FORMAT>` by a [Moment.js format](https://momentjs.com/docs/#/displaying/format/).
+The check runs the regression tests, type checking and the production build.
+`result/` contains `main.js`, `manifest.json`, `styles.css` and `LICENSE`, not a vault
+or its private settings. Nix pins the toolchain and JavaScript dependencies.
 
-#### Link
-| Syntax | Description |
-| -- | -- |
-| `{{LINK}}` | Internal link like `[[image.png]]` |
-| `{{EMBED}}` | Embedded link like `![[image.png]]` |
+For development:
 
-#### Path
-| Syntax | Description |
-| -- | -- |
-| `{{PATH}}` | Path of a static file. |
-| `{{FULLNAME}}` | Name of a static file. |
-| `{{NAME}}` | Name of a static file with extension removed. |
-| `{{EXTENSION}}` | Extension of a static file. |
+```sh
+nix develop
+pnpm install --frozen-lockfile
+pnpm test
+pnpm check
+```
 
-- You can choose between uppercase and lowercase letters by adding suffixes `:UP` and `:LOW`, respectively. For example, `{{NAME:UP}}`.
+The shell supplies Node.js, pnpm and a Nix-native Biome binary. The initial install
+and Nix dependency fetches need network access; the installed plugin does not
+need a release server or updater.
 
-### Templater plugin support
-You can also use [Templater plugin](https://github.com/SilentVoid13/Templater) to format your meta data files.
-Just install Templater plugin and set `Use Templater` in the setting tab of Binary File Manager.
+## Install or migrate
+
+Close Obsidian and back up the vault before changing its plugin files.
+
+1. Run `nix build` and create
+   `<vault>/.obsidian/plugins/personal-fork-binary-file-manager/`.
+2. Copy the four files from `result/` into that directory. Copy the files rather
+   than symlinking the directory: Obsidian must be able to write its settings and
+   registry alongside the build.
+3. When migrating from upstream, also copy `data.json` and the hidden
+   `.binary-file-manager_binary-file-list.txt` from its existing plugin directory.
+   Do not uninstall upstream before preserving these files. A missing registry
+   makes existing binaries appear new.
+4. In `.obsidian/community-plugins.json`, replace
+   `obsidian-binary-file-manager-plugin` with `personal-fork-binary-file-manager`.
+   Move the old plugin directory outside the vault as a recoverable backup.
+5. If `.obsidian/hotkeys.json` contains command keys prefixed with
+   `obsidian-binary-file-manager-plugin:`, replace that prefix with
+   `personal-fork-binary-file-manager:`.
+6. Reopen the vault. Confirm the personal fork is enabled and upstream is absent.
+
+Use the vault's actual configuration directory if it is not `.obsidian`.
+Old registries can contain stale paths from earlier renames. Those binaries can
+receive duplicate stubs on startup; check for and remove those duplicates after
+migration. The fixes prevent future registry loss and track subsequent in-app
+renames, but do not repair old state.
+
+For later updates, close Obsidian, copy the four build files into the same local
+plugin directory and reopen it. Keep the existing settings and registry files.
