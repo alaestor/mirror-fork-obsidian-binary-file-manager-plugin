@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-binary-file-manager-plugin",
-	"name": "Binary File Manager",
-	"version": "0.3.3",
+	"id": "personal-fork-binary-file-manager",
+	"name": "Binary File Manager (personal fork)",
+	"version": "0.3.3-personal.1",
 	"minAppVersion": "1.4.10",
 	"description": "Detects new binary files in the vault and create markdown files with metadata.",
-	"author": "qawatake",
-	"authorUrl": "https://github.com/qawatake/obsidian-binary-file-manager-plugin",
+	"author": "alaestor weissman",
+	"authorUrl": "https://git.0x04.cc/alaestor/fork-obsidian-binary-file-manager-plugin",
 	"isDesktopOnly": false
 }

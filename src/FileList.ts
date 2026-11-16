@@ -1,16 +1,19 @@
 import type BinaryFileManagerPlugin from 'main';
 import { type App, normalizePath } from 'obsidian';
 
-const PLUGIN_NAME = 'obsidian-binary-file-manager-plugin';
 const REGISTERED_BINARY_FILE_STORAGE_FILE_NAME =
 	'.binary-file-manager_binary-file-list.txt';
 
 export class FileListAdapter {
 	private app: App;
+	private storageFilePath: string;
 	private registeredBinaryFilePaths: Set<string>;
 
-	constructor(app: App, _plugin: BinaryFileManagerPlugin) {
+	constructor(app: App, plugin: BinaryFileManagerPlugin) {
 		this.app = app;
+		this.storageFilePath = normalizePath(
+			`${app.vault.configDir}/plugins/${plugin.manifest.id}/${REGISTERED_BINARY_FILE_STORAGE_FILE_NAME}`
+		);
 		this.registeredBinaryFilePaths = new Set<string>();
 	}
 
@@ -62,30 +65,22 @@ export class FileListAdapter {
 	}
 
 	private async loadBinaryFiles() {
-		const configDir = this.app.vault.configDir;
-		const storageFilePath = normalizePath(
-			`${configDir}/plugins/${PLUGIN_NAME}/${REGISTERED_BINARY_FILE_STORAGE_FILE_NAME}`
-		);
-
-		if (!(await this.app.vault.adapter.exists(storageFilePath))) {
+		if (!(await this.app.vault.adapter.exists(this.storageFilePath))) {
 			this.registeredBinaryFilePaths = new Set<string>();
 			return;
 		}
 
-		const binaryFiles = (await this.app.vault.adapter.read(storageFilePath))
+		const binaryFiles = (
+			await this.app.vault.adapter.read(this.storageFilePath)
+		)
 			.trim()
 			.split(/\r?\n/);
 		this.registeredBinaryFilePaths = new Set<string>(binaryFiles);
 	}
 
 	private async saveBinaryFiles() {
-		const configDir = this.app.vault.configDir;
-		const storageFilePath = normalizePath(
-			`${configDir}/plugins/${PLUGIN_NAME}/${REGISTERED_BINARY_FILE_STORAGE_FILE_NAME}`
-		);
-
 		await this.app.vault.adapter.write(
-			storageFilePath,
+			this.storageFilePath,
 			Array.from(this.registeredBinaryFilePaths).join('\n')
 		);
 	}

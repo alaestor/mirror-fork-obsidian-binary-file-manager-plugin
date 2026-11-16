@@ -4,13 +4,15 @@ const { resolve } = require('node:path');
 const { test } = require('node:test');
 const { runInNewContext } = require('node:vm');
 const ts = require('typescript');
+const manifest = require('../manifest.json');
+const pluginIdentity = { manifest };
 
 // Obsidian provides its runtime inside the application, not in its npm package.
 const obsidian = {
   normalizePath: (path) => path,
   TFile: class TFile {},
   Plugin: class Plugin {
-    constructor(app) { this.app = app; this.commands = []; }
+    constructor(app) { this.app = app; this.commands = []; this.manifest = manifest; }
     async loadData() { return { autoDetection: false }; }
     registerEvent() {}
     addCommand(command) { this.commands.push(command); }
@@ -38,7 +40,7 @@ const { FileListAdapter } = loadSource('FileList');
 const { MetaDataGenerator } = loadSource('Generator');
 const flush = () => new Promise(setImmediate);
 
-function vault({ ready = false, beforeRead = async () => {} } = {}) {
+function vault({ ready = false, beforeRead = async () => {}, configDir = '.obsidian', pluginId = manifest.id } = {}) {
   let disk = 'Storage/existing.pdf\nStorage/deleted.pdf';
   const callbacks = [];
   const writes = [];
@@ -52,12 +54,12 @@ function vault({ ready = false, beforeRead = async () => {} } = {}) {
     },
     vault: {
       on(name, callback) { events.set(name, callback); return callback; },
-      configDir: '.obsidian',
+      configDir,
       getFiles: () => ready ? [{ path: 'Storage/existing.pdf' }] : [],
       adapter: {
-        exists: async () => true,
-        read: async () => { await beforeRead(); return disk; },
-        write: async (_path, content) => { writes.push(content); disk = content; },
+        exists: async (path) => { assert.equal(path, `${configDir}/plugins/${pluginId}/.binary-file-manager_binary-file-list.txt`); return true; },
+        read: async (path) => { assert.equal(path, `${configDir}/plugins/${pluginId}/.binary-file-manager_binary-file-list.txt`); await beforeRead(); return disk; },
+        write: async (path, content) => { assert.equal(path, `${configDir}/plugins/${pluginId}/.binary-file-manager_binary-file-list.txt`); writes.push(content); disk = content; },
       },
     },
   };
@@ -69,17 +71,26 @@ function vault({ ready = false, beforeRead = async () => {} } = {}) {
 
 test('loading in an already-open vault preserves existing registrations', async () => {
   const { app } = vault({ ready: true });
-  const list = await new FileListAdapter(app, {}).load();
+  const list = await new FileListAdapter(app, pluginIdentity).load();
   await flush();
   assert.equal(list.has('Storage/existing.pdf'), true);
   assert.equal(list.has('Storage/deleted.pdf'), false);
+});
+
+test('registry storage follows the plugin ID and vault configuration directory', async () => {
+  const mock = vault({ configDir: 'CustomConfig', pluginId: 'another-local-id' });
+  const list = await new FileListAdapter(mock.app, { manifest: { id: 'another-local-id' } }).load();
+  list.add('Storage/new.pdf');
+  await list.save();
+  assert.equal(list.has('Storage/existing.pdf'), true);
+  assert.equal(mock.writes.length, 1);
 });
 
 test('layout readiness during a delayed read cannot erase the saved registry', async () => {
   let release;
   const blocked = new Promise((resolve) => { release = resolve; });
   const mock = vault({ beforeRead: () => blocked });
-  const loading = new FileListAdapter(mock.app, {}).load();
+  const loading = new FileListAdapter(mock.app, pluginIdentity).load();
   await flush();
   mock.open();
   release();
@@ -91,7 +102,7 @@ test('layout readiness during a delayed read cannot erase the saved registry', a
 
 test('cleanup waits for file discovery and removes only absent paths', async () => {
   const mock = vault();
-  const list = await new FileListAdapter(mock.app, {}).load();
+  const list = await new FileListAdapter(mock.app, pluginIdentity).load();
   assert.equal(mock.writes.length, 0);
   assert.equal(list.has('Storage/deleted.pdf'), true);
   mock.open();
@@ -103,14 +114,14 @@ test('cleanup waits for file discovery and removes only absent paths', async () 
 
 test('a failed registry read must not overwrite the saved state', async () => {
   const mock = vault({ ready: true, beforeRead: async () => { throw new Error('read failed'); } });
-  await assert.rejects(new FileListAdapter(mock.app, {}).load(), /read failed/);
+  await assert.rejects(new FileListAdapter(mock.app, pluginIdentity).load(), /read failed/);
   await flush();
   assert.equal(mock.writes.length, 0);
 });
 
 test('detection skips a registered binary but accepts a new binary after startup', async () => {
   const mock = vault({ ready: true });
-  const list = await new FileListAdapter(mock.app, {}).load();
+  const list = await new FileListAdapter(mock.app, pluginIdentity).load();
   const generator = new MetaDataGenerator(mock.app, {
     fileListAdapter: list,
     fileExtensionManager: { getExtensionMatchedBest: () => 'pdf' },
@@ -123,10 +134,10 @@ test('detection skips a registered binary but accepts a new binary after startup
 
 test('renaming a registered binary replaces its path and survives registry reload', async () => {
   const mock = vault();
-  const list = await new FileListAdapter(mock.app, {}).load();
+  const list = await new FileListAdapter(mock.app, pluginIdentity).load();
   assert.equal(list.rename('Storage/existing.pdf', 'Archive/corrected.pdf'), true);
   await list.save();
-  const reloaded = await new FileListAdapter(mock.app, {}).load();
+  const reloaded = await new FileListAdapter(mock.app, pluginIdentity).load();
   assert.equal(reloaded.has('Storage/existing.pdf'), false);
   assert.equal(reloaded.has('Archive/corrected.pdf'), true);
   assert.equal(reloaded.has('Storage/deleted.pdf'), true);
@@ -134,7 +145,7 @@ test('renaming a registered binary replaces its path and survives registry reloa
 
 test('renaming a folder updates registered descendants with a path boundary', async () => {
   const mock = vault();
-  const list = await new FileListAdapter(mock.app, {}).load();
+  const list = await new FileListAdapter(mock.app, pluginIdentity).load();
   list.add('Storage/nested/image.png');
   list.add('Storage-extra/other.pdf');
   list.add('Unrelated/keep.pdf');
@@ -150,7 +161,7 @@ test('renaming a folder updates registered descendants with a path boundary', as
 
 test('renaming an unregistered file or keeping the same path changes nothing', async () => {
   const mock = vault();
-  const list = await new FileListAdapter(mock.app, {}).load();
+  const list = await new FileListAdapter(mock.app, pluginIdentity).load();
   assert.equal(list.rename('Unregistered.pdf', 'Renamed.pdf'), false);
   assert.equal(list.rename('Storage/existing.pdf', 'Storage/existing.pdf'), false);
   assert.equal(list.has('Renamed.pdf'), false);
@@ -177,7 +188,7 @@ test('vault rename events persist registration even with auto detection disabled
   await plugin.commands.find((command) => command.id === 'binary-file-manager-manual-detection').callback();
   assert.equal(created, 0, 'manual detection must not duplicate the renamed binary');
 
-  const reloaded = await new FileListAdapter(mock.app, {}).load();
+  const reloaded = await new FileListAdapter(mock.app, pluginIdentity).load();
   assert.equal(reloaded.has(renamed.path), true);
 });
 

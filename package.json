@@ -1,6 +1,6 @@
 {
-  "name": "obsidian-binary-file-manager-plugin",
-  "version": "0.12.0",
+  "name": "personal-fork-binary-file-manager",
+  "version": "0.3.3-personal.1",
   "description": "This plugin detects new binary files in the vault and create markdown files with metadata.",
   "main": "main.js",
   "packageManager": "pnpm@10.34.7",
@@ -20,7 +20,7 @@
     "check": "node scripts/check-toolchain.mjs && node scripts/check-config-schema.mjs && pnpm test && pnpm lint && pnpm typecheck && pnpm build && node scripts/check-bundled-deps.mjs"
   },
   "keywords": [],
-  "author": "qawatake",
+  "author": "alaestor weissman",
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
